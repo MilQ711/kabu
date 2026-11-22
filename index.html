@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日本株トレード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* layout: one phone-width column of soft pastel cards — summary, ranking, trade, holdings, history */
+  --bg: #e6f5ff;
+  --bg2: #d6ecff;
+  --surface: #ffffff;
+  --ink: #573f5f;
+  --muted: #9a7fa2;
+  --line: #f7dbe8;
+  --accent: #ff9cc5;
+  --accent2: #c3b2ff;
+  --btn-ink: #5a2d52;
+  --up: #36b38f;
+  --down: #f08466;
+  --gold: #ffd27a;
+  --shadow: 0 6px 20px rgba(90, 160, 220, .18);
+  --font-display: "Mochiy Pop One", "Hiragino Maru Gothic ProN", sans-serif;
+  --font-body: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #152536; --bg2: #1b3149; --surface: #33233d; --ink: #fcedf6; --muted: #c8a8cb;
+    --line: #4b3555; --accent: #ff9cc5; --accent2: #c9b8ff; --btn-ink: #3a1530;
+    --up: #6fe0bd; --down: #ffa47c; --gold: #ffcf6b; --shadow: 0 6px 20px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #152536; --bg2: #1b3149; --surface: #33233d; --ink: #fcedf6; --muted: #c8a8cb;
+  --line: #4b3555; --accent: #ff9cc5; --accent2: #c9b8ff; --btn-ink: #3a1530;
+  --up: #6fe0bd; --down: #ffa47c; --gold: #ffcf6b; --shadow: 0 6px 20px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; overflow-x: hidden; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(circle at 12% 8%, var(--bg2) 0, transparent 38%), radial-gradient(circle at 92% 30%, var(--bg2) 0, transparent 30%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body); font-weight: 500; font-size: 15px; line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+}
+body::before, body::after { content: ""; position: fixed; z-index: -1; pointer-events: none; will-change: transform; }
+body::before {
+  inset: -160px; background: var(--accent); opacity: .16;
+  -webkit-mask-image: var(--pat1); mask-image: var(--pat1);
+  -webkit-mask-size: 160px 160px; mask-size: 160px 160px;
+  animation: flow-a 14s linear infinite;
+}
+body::after {
+  inset: -200px; background: var(--accent2); opacity: .28;
+  -webkit-mask-image: var(--pat2); mask-image: var(--pat2);
+  -webkit-mask-size: 200px 200px; mask-size: 200px 200px;
+  animation: flow-b 22s linear infinite;
+}
+@keyframes flow-a { to { transform: translate(160px, 160px); } }
+@keyframes flow-b { to { transform: translate(-200px, 200px); } }
+
+main { max-width: 480px; margin: 0 auto; padding: 16px 16px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.card, header, .row, .row > div { min-width: 0; }
+header {
+  display: grid; gap: 2px; position: relative;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--surface)), color-mix(in srgb, var(--accent2) 26%, var(--surface)));
+  border-radius: 28px; padding: 18px 20px 20px; box-shadow: var(--shadow); overflow: hidden;
+}
+header::before, header::after { content: "✦"; position: absolute; color: var(--surface); opacity: .9; pointer-events: none; }
+header::before { right: 22px; top: 12px; font-size: 26px; }
+header::after { right: 58px; top: 40px; font-size: 14px; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin: 0; text-wrap: balance; }
+h1 .heart { color: var(--accent); }
+.updated { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .6; flex: none; }
+.dot.on { background: var(--up); opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, var(--up) 25%, transparent); }
+.seg-sm { width: 60%; justify-self: end; padding: 3px; }
+.seg-sm button { padding: 4px; font-size: 13px; }
+.byline { font-family: var(--font-display); font-size: 12px; color: color-mix(in srgb, var(--accent) 75%, var(--ink)); letter-spacing: .08em; }
+.total-label { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.total-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.total { font-size: 28px; font-weight: 900; }
+.chip { font-size: 12.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--surface); }
+.up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--muted); }
+.split { display: flex; gap: 14px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.split b { color: var(--ink); font-weight: 700; }
+.themes { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.themes .lbl { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--line); padding: 0; box-shadow: 0 1px 4px rgba(0,0,0,.12); position: relative; }
+.sw[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.sw[aria-pressed="true"]::after { content: "♡"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--accent); font-weight: 900; }
+
+.card { background: var(--surface); border-radius: 26px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; box-shadow: var(--shadow); }
+.card h2 { font-family: var(--font-display); font-weight: 400; font-size: 15px; margin: 0; display: flex; align-items: center; }
+.card h2::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 14px 0 0 -2px var(--accent2); margin-right: 20px; flex: none; }
+.hint { font-size: 12px; color: var(--muted); margin: -6px 0 0; }
+
+.rank { display: grid; gap: 6px; }
+.rrow {
+  display: grid; grid-template-columns: 30px minmax(0, 1fr) 52px 58px; gap: 8px; align-items: center;
+  padding: 8px 10px; border-radius: 16px; background: color-mix(in srgb, var(--accent2) 7%, var(--bg));
+  border: 2px solid transparent; text-align: left; color: inherit; width: 100%;
+}
+.rrow.sel { border-color: var(--accent); }
+.badge {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 13px; color: var(--muted); background: var(--surface);
+}
+.badge.r1 { background: var(--gold); color: #7a5410; }
+.badge.r2 { background: #d5dcea; color: #4f5a70; }
+.badge.r3 { background: #f6c4a8; color: #7a4326; }
+.nm { font-weight: 900; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { font-size: 11.5px; color: var(--muted); }
+.rrow canvas { width: 52px; height: 24px; display: block; }
+.score { text-align: right; }
+.score .v { font-family: var(--font-display); font-size: 15px; color: color-mix(in srgb, var(--accent) 70%, var(--ink)); line-height: 1.2; }
+.bar { height: 5px; border-radius: 999px; background: var(--line); overflow: hidden; margin-top: 3px; }
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: inherit; }
+
+select, input[type="text"] {
+  font: inherit; font-weight: 700; color: var(--ink);
+  background: var(--surface); border: 2px solid var(--line); border-radius: 999px; padding: 7px 12px; width: 100%;
+}
+.search { display: grid; gap: 6px; }
+.search input { font: inherit; font-weight: 700; font-size: 16px; color: var(--ink); width: 100%;
+  background: color-mix(in srgb, var(--accent2) 8%, var(--bg)); border: 2px solid transparent; border-radius: 999px;
+  padding: 9px 16px 9px 38px; -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23b49cff' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='M12.5 12.5L16 16'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 14px center; }
+.search input::placeholder { color: var(--muted); font-weight: 500; font-size: 13px; }
+.search input:focus { outline: none; border-color: var(--accent2); }
+.results { display: grid; gap: 4px; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 6px; }
+.results[hidden] { display: none; }
+.res { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; border: 0; background: none; color: inherit; text-align: left; padding: 8px 10px; border-radius: 12px; width: 100%; }
+.res:hover, .res:focus-visible { background: color-mix(in srgb, var(--accent) 8%, var(--bg)); }
+.res .nm { font-size: 14px; }
+.res .pr { font-weight: 700; font-size: 13px; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
+.stockhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; }
+.stockhead .price { font-size: 26px; font-weight: 900; line-height: 1.1; }
+.bigchart { width: 100%; height: 110px; display: block; border-radius: 16px; background: color-mix(in srgb, var(--accent) 5%, var(--bg)); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: color-mix(in srgb, var(--accent) 8%, var(--bg)); border-radius: 999px; padding: 4px; }
+.seg button { border: 0; background: none; border-radius: 999px; padding: 8px; font-weight: 900; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.seg button[aria-pressed="true"].buy { color: var(--accent); }
+.seg button[aria-pressed="true"].sell { color: var(--accent2); }
+.qty { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: 8px; align-items: center; }
+.qty button { height: 44px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--accent) 14%, var(--bg)); color: var(--accent); font-size: 22px; font-weight: 900; }
+.qty input { text-align: center; font-size: 20px; font-weight: 900; padding: 8px; }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.presets button { border: 2px solid var(--line); background: none; border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.details { display: grid; gap: 2px; font-size: 13px; color: var(--muted); padding: 0 4px; }
+.details div { display: flex; justify-content: space-between; gap: 8px; }
+.details b { color: var(--ink); font-weight: 700; text-align: right; }
+.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--btn-ink); border: 0; border-radius: 999px;
+  padding: 14px; font-family: var(--font-display); font-weight: 400; font-size: 16px; letter-spacing: .05em;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 70%, #9b5a80); transition: transform .1s, box-shadow .1s;
+}
+.primary.sell { background: linear-gradient(135deg, var(--accent2), #a9d2ff); box-shadow: 0 4px 0 color-mix(in srgb, var(--accent2) 70%, #6a5aa0); }
+.primary:active { transform: translateY(3px); box-shadow: none; }
+.primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.msg { font-size: 13px; min-height: 1.5em; margin: -4px 0 0; text-align: center; }
+.msg.err { color: var(--down); } .msg.ok { color: var(--up); }
+.msg.ok::before { content: "♡ "; }
+
+.list { display: grid; gap: 6px; }
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 10px 12px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 6%, var(--bg)); border: 0; color: inherit; text-align: left; width: 100%; }
+.prow .r { text-align: right; }
+.prow .r b { font-weight: 900; }
+.empty { color: var(--muted); font-size: 13px; text-align: center; padding: 8px 0; }
+.hrow { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 14px; background: color-mix(in srgb, var(--accent2) 7%, var(--bg)); font-size: 13.5px; }
+.hrow .t { color: var(--muted); white-space: nowrap; }
+.tag { font-size: 11px; font-weight: 900; padding: 1px 7px; border-radius: 999px; margin-right: 6px; color: var(--btn-ink); }
+.tag.b { background: var(--accent); } .tag.s { background: var(--accent2); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ghost { background: none; border: 2px solid var(--line); color: var(--muted); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; font-weight: 700; }
+@media (max-width: 360px) { .rrow { grid-template-columns: 28px minmax(0, 1fr) 54px; } .rrow canvas { display: none; } }
+@media (prefers-reduced-motion: reduce) { body::before, body::after { animation: none; } * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>日本株トレード <span class="heart">♡</span></h1>
+    <div class="byline">by ゆな</div>
+    <div class="total-label">総資産</div>
+    <div class="total-row"><span class="total" id="total">—</span><span class="chip flat" id="pl">—</span></div>
+    <div class="split"><span>現金 <b id="cash">—</b></span><span>株 <b id="stockval">—</b></span></div>
+    <div class="updated" id="updated">株価を読み込み中…</div>
+  </header>
+
+  <section class="card" aria-labelledby="rk-h">
+    <h2 id="rk-h">上昇期待ランキング TOP10</h2>
+    <p class="hint">過去20営業日の値動きの勢いから計算したスコアです（投資のおすすめではありません）。タップすると売買できます。</p>
+    <div class="rank" id="rank"><div class="empty">株価を読み込み中…</div></div>
+  </section>
+
+  <section class="card" aria-labelledby="tr-h" id="trade">
+    <h2 id="tr-h">売買する</h2>
+    <div class="search">
+      <input type="search" id="q" placeholder="銘柄名・コードで検索" autocomplete="off" aria-label="銘柄を検索">
+      <div class="results" id="results" hidden></div>
+    </div>
+    <select id="stockSel" aria-label="銘柄"></select>
+    <div class="stockhead">
+      <div><div class="sub" id="selName">—</div><div class="price" id="selPrice">—</div></div>
+      <div class="sub" style="text-align:right"><span id="selChg">—</span><br>期待度 <b id="selScore">—</b></div>
+    </div>
+    <div class="seg seg-sm" role="group" aria-label="チャートの期間">
+      <button type="button" id="cDay" aria-pressed="true">今日</button>
+      <button type="button" id="cLong" aria-pressed="false">3か月</button>
+    </div>
+    <canvas class="bigchart" id="big" aria-label="株価チャート" role="img"></canvas>
+    <p class="hint" id="chartNote"></p>
+    <div class="seg" role="group" aria-label="買うか売るか">
+      <button type="button" class="buy" id="modeBuy" aria-pressed="true">買う</button>
+      <button type="button" class="sell" id="modeSell" aria-pressed="false">売る</button>
+    </div>
+    <div class="qty">
+      <button type="button" id="minus" aria-label="1株減らす">−</button>
+      <input type="text" id="qty" inputmode="numeric" autocomplete="off" value="10" aria-label="株数">
+      <button type="button" id="plus" aria-label="1株増やす">＋</button>
+    </div>
+    <div class="presets" id="presets">
+      <button type="button" data-q="1">1株</button>
+      <button type="button" data-q="10">10株</button>
+      <button type="button" data-q="100">100株</button>
+      <button type="button" data-q="max">最大</button>
+    </div>
+    <div class="details">
+      <div><span>合計金額</span><b id="sum">—</b></div>
+      <div><span>保有</span><b id="have">—</b></div>
+      <div><span>平均取得単価</span><b id="avg">—</b></div>
+    </div>
+    <button class="primary" id="go" type="button">買う</button>
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <section class="card" aria-labelledby="pf-h">
+    <h2 id="pf-h">保有株</h2>
+    <div class="list" id="pf"></div>
+  </section>
+
+  <section class="card" aria-labelledby="hi-h">
+    <div class="foot"><h2 id="hi-h">取引履歴</h2><button class="ghost" id="reset" type="button">最初からやり直す</button></div>
+    <div class="list" id="hist"></div>
+  </section>
+
+  <section class="card" aria-labelledby="bg-h">
+    <h2 id="bg-h">背景の色</h2>
+    <div class="themes" id="themes" role="group" aria-label="背景の色"></div>
+  </section>
+</main>
+
+<script>
+(function () {
+  // flowing background patterns
+  const hearts = "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><path d='M40 54C22 41 26 27 35 29c3 1 5 4 5 4s2-3 5-4c9-2 13 12-5 25z'/><path d='M120 134c-12-9-9-18-3-17 2 1 3 3 3 3s1-2 3-3c6-1 9 8-3 17z'/><circle cx='120' cy='40' r='3.5'/><circle cx='40' cy='120' r='3.5'/><circle cx='80' cy='80' r='2'/></svg>";
+  const stars = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><path d='M100 70q2 14 16 16q-14 2-16 16q-2-14-16-16q14-2 16-16z'/><path d='M30 150q1 8 9 9q-8 1-9 9q-1-8-9-9q8-1 9-9z'/><path d='M170 20q1 6 7 7q-6 1-7 7q-1-6-7-7q6-1 7-7z'/></svg>";
+  document.documentElement.style.setProperty("--pat1", 'url("data:image/svg+xml,' + encodeURIComponent(hearts) + '")');
+  document.documentElement.style.setProperty("--pat2", 'url("data:image/svg+xml,' + encodeURIComponent(stars) + '")');
+
+  // background color themes
+  const THEMES = [
+    ["sky", "水色", "#d3efff", "#c4e4ff", "rgba(90,160,220,.18)", "#152536", "#1b3149"],
+    ["pink", "ピンク", "#ffdeeb", "#f0e2ff", "rgba(255,120,173,.16)", "#24182b", "#1d1a33"],
+    ["lav", "ラベンダー", "#e6dfff", "#d9ceff", "rgba(150,120,230,.16)", "#1f1a33", "#2a2145"],
+    ["mint", "ミント", "#d2f5e6", "#c2efdd", "rgba(60,180,140,.16)", "#142a25", "#1a3830"],
+    ["lemon", "レモン", "#fff5c4", "#ffecaa", "rgba(220,170,40,.18)", "#2a2614", "#36301a"],
+    ["peach", "ピーチ", "#ffe0d0", "#ffd2bf", "rgba(240,130,90,.16)", "#2c1c17", "#3a241d"]
+  ];
+  let themeId = "sky";
+  try { themeId = localStorage.getItem("kabu-theme") || "sky"; } catch (e) {}
+  const root = document.documentElement;
+  function isDark() { const t = root.getAttribute("data-theme"); return t ? t === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches; }
+  function applyTheme() {
+    const t = THEMES.find(x => x[0] === themeId) || THEMES[0], d = isDark();
+    root.style.setProperty("--bg", d ? t[5] : t[2]);
+    root.style.setProperty("--bg2", d ? t[6] : t[3]);
+    root.style.setProperty("--shadow", d ? "0 6px 20px rgba(0,0,0,.3)" : "0 6px 20px " + t[4]);
+    document.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", b.dataset.t === t[0]));
+  }
+  THEMES.forEach(t => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "sw"; b.dataset.t = t[0];
+    b.style.background = "linear-gradient(135deg," + t[2] + "," + t[3] + ")"; b.setAttribute("aria-label", t[1]); b.title = t[1];
+    b.addEventListener("click", () => { themeId = t[0]; try { localStorage.setItem("kabu-theme", themeId); } catch (e) {} applyTheme(); });
+    document.getElementById("themes").appendChild(b);
+  });
+  applyTheme();
+  new MutationObserver(applyTheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+
+  const START = 1000000;
+  const KANA = {"7203": "とよたじどうしゃ", "6758": "そにーぐるーぷ", "7974": "にんてんどう", "8306": "みつびしゆーえふじぇい", "6861": "きーえんす", "9983": "ふぁーすとりていりんぐ ゆにくろ", "9984": "そふとばんくぐるーぷ", "8035": "とうきょうえれくとろん", "6501": "ひたちせいさくしょ", "9433": "けーでぃーでぃーあい えーゆー au", "9432": "えぬてぃーてぃー", "6098": "りくるーと", "4063": "しんえつかがく", "8031": "みついぶっさん", "8001": "いとうちゅうしょうじ", "4661": "おりえんたるらんど でぃずにー", "8136": "さんりお", "7832": "ばんだいなむこ", "9697": "かぷこん", "9766": "こなみぐるーぷ", "9202": "えーえぬえー ぜんにっくう", "4385": "めるかり", "4755": "らくてんぐるーぷ", "8473": "えすびーあい", "9684": "すくうぇあえにっくす"};
+  const $ = id => document.getElementById(id);
+  const yen = x => "¥" + (Math.abs(x) >= 1000 ? Math.round(x).toLocaleString("ja-JP") : x.toLocaleString("ja-JP", { maximumFractionDigits: 1 }));
+  const px = x => x >= 1000 ? Math.round(x).toLocaleString("ja-JP") + "円" : x.toLocaleString("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "円";
+  const pct = (a, b) => { const v = (a / b - 1) * 100; return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2) + "%"; };
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function norm(t) {
+    return String(t).normalize("NFKC").toLowerCase().replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60)).replace(/[\s・]/g, "");
+  }
+
+  // ---- data ----
+  let STOCKS = [], by = {}, meta = null, loaded = false;
+  let sel = "8136", mode = "buy", chartMode = "day";
+
+  // momentum score 0–99 from the trend of the last 20 trading days
+  function trendScore(arr) {
+    const h = arr.slice(-20).map(Math.log), n = h.length;
+    if (n < 5) return 50;
+    let sx = 0, sy = 0, sxy = 0, sxx = 0;
+    h.forEach((y, x) => { sx += x; sy += y; sxy += x * y; sxx += x * x; });
+    const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+    let vv = 0; for (let i = 1; i < n; i++) { const d = h[i] - h[i - 1]; vv += d * d; }
+    const sd = Math.sqrt(vv / (n - 1)) || 1e-9;
+    const z = slope / sd * Math.sqrt(n) / 2;
+    return Math.max(1, Math.min(99, Math.round(50 + 22 * z)));
+  }
+
+  function applyData(d) {
+    meta = d;
+    STOCKS = (d.stocks || []).filter(s => s.price > 0).map(s => {
+      const daily = (s.daily || []).map(x => x.c);
+      return {
+        code: s.code, name: s.name, p: s.price, prev: s.prev_close || s.price,
+        day: (s.intraday || []).map(x => x.c), daily,
+        key: norm(s.code + s.name + (KANA[s.code] || "")), sc: trendScore(daily)
+      };
+    });
+    by = {}; STOCKS.forEach(s => by[s.code] = s);
+    if (!by[sel] && STOCKS.length) sel = STOCKS[0].code;
+    const stockSel = $("stockSel"), cur = stockSel.value;
+    stockSel.innerHTML = "";
+    STOCKS.slice().sort((a, b) => a.code.localeCompare(b.code)).forEach(s => stockSel.add(new Option(s.code + " " + s.name, s.code)));
+    stockSel.value = by[cur] ? cur : sel;
+    loaded = STOCKS.length > 0;
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return "—";
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    return m ? (+m[2]) + "/" + (+m[3]) + " " + m[4] + ":" + m[5] : iso;
+  }
+  function marketOpenNow() {
+    const j = new Date(Date.now() + 9 * 3600e3), wd = j.getUTCDay(), mins = j.getUTCHours() * 60 + j.getUTCMinutes();
+    return wd >= 1 && wd <= 5 && ((mins >= 540 && mins < 690) || (mins >= 750 && mins < 930));
+  }
+  function renderUpdated() {
+    const el = $("updated");
+    if (!meta) return;
+    const open = marketOpenNow();
+    el.innerHTML = '<span class="dot ' + (open ? "on" : "") + '"></span>';
+    el.append((open ? "取引時間中・" : "取引時間外・") + fmtTime(meta.market_time || meta.updated) + " の株価（約20分遅れ）");
+  }
+
+  async function load() {
+    try {
+      const r = await fetch("data/prices.json?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      applyData(await r.json());
+      if (!loaded) throw new Error("empty");
+      renderAll();
+    } catch (e) {
+      if (!loaded) {
+        $("updated").textContent = "株価データを読み込めませんでした。";
+        $("rank").innerHTML = '<div class="empty">株価データ（data/prices.json）が見つかりません。GitHubの「Actions」で「株価を更新して公開」が成功しているか確認してください。</div>';
+      }
+    }
+  }
+
+  // ---- state ----
+  let st;
+  function fresh() { return { cash: START, pos: {}, log: [] }; }
+  try { st = JSON.parse(localStorage.getItem("kabu-real-v1")) || fresh(); } catch (e) { st = fresh(); }
+  if (typeof st.cash !== "number" || !st.pos || !st.log) st = fresh();
+  function save() { try { localStorage.setItem("kabu-real-v1", JSON.stringify(st)); } catch (e) {} }
+
+  function drawLine(cv, h, opts) {
+    if (!h || h.length < 2) { const g = cv.getContext("2d"); g.clearRect(0, 0, cv.width, cv.height); return; }
+    const dpr = window.devicePixelRatio || 1;
+    const W = cv.clientWidth, Hh = cv.clientHeight; if (!W) return;
+    if (cv.width !== Math.round(W * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); }
+    const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Hh);
+    const base = opts.base;
+    let mn = Math.min(...h), mx = Math.max(...h);
+    if (base) { mn = Math.min(mn, base); mx = Math.max(mx, base); }
+    const pad = opts.pad || 3;
+    const up = h[h.length - 1] >= (base || h[0]);
+    const col = css(up ? "--up" : "--down");
+    const X = i => pad + i / (h.length - 1) * (W - pad * 2 - 3), Y = v => mx === mn ? Hh / 2 : pad + (1 - (v - mn) / (mx - mn)) * (Hh - pad * 2);
+    if (opts.grid) { g.strokeStyle = css("--line"); g.lineWidth = 1; for (let k = 1; k < 4; k++) { const y = Math.round(Hh * k / 4) + .5; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); } }
+    if (base) { g.setLineDash([4, 4]); g.strokeStyle = css("--muted"); g.globalAlpha = .6; g.beginPath(); g.moveTo(0, Y(base)); g.lineTo(W, Y(base)); g.stroke(); g.setLineDash([]); g.globalAlpha = 1; }
+    g.beginPath(); h.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)));
+    g.lineWidth = opts.w || 1.6; g.strokeStyle = col; g.lineJoin = "round"; g.stroke();
+    g.lineTo(X(h.length - 1), Hh); g.lineTo(X(0), Hh); g.closePath(); g.globalAlpha = .13; g.fillStyle = col; g.fill(); g.globalAlpha = 1;
+    g.beginPath(); g.arc(X(h.length - 1), Y(h[h.length - 1]), opts.dot || 2.2, 0, Math.PI * 2); g.fillStyle = col; g.fill();
+  }
+
+  // ---- ranking ----
+  function renderRank() {
+    if (!loaded) return;
+    const ranked = STOCKS.slice().sort((a, b) => b.sc - a.sc).slice(0, 10);
+    const el = $("rank"); el.innerHTML = "";
+    ranked.forEach((s, i) => {
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "rrow" + (s.code === sel ? " sel" : "");
+      b.innerHTML = '<span class="badge' + (i < 3 ? " r" + (i + 1) : "") + '">' + (i + 1) + '</span>' +
+        '<div><div class="nm"></div><div class="sub"></div></div><canvas aria-hidden="true"></canvas>' +
+        '<div class="score"><div class="v">' + s.sc + '</div><div class="bar"><i style="width:' + s.sc + '%"></i></div></div>';
+      b.querySelector(".nm").textContent = s.name;
+      b.querySelector(".sub").textContent = s.code + "・" + px(s.p);
+      b.setAttribute("aria-label", (i + 1) + "位 " + s.name + " 期待度" + s.sc);
+      b.addEventListener("click", () => { select(s.code); $("trade").scrollIntoView({ behavior: "smooth", block: "start" }); });
+      el.appendChild(b);
+      drawLine(b.querySelector("canvas"), s.daily.slice(-20), { w: 1.6, dot: 2 });
+    });
+  }
+
+  // ---- search ----
+  const qIn = $("q"), resEl = $("results");
+  function renderResults() {
+    const t = norm(qIn.value);
+    if (!t || !loaded) { resEl.hidden = true; resEl.innerHTML = ""; return; }
+    const hits = STOCKS.filter(s => s.key.includes(t)).slice(0, 8);
+    resEl.hidden = false; resEl.innerHTML = "";
+    if (!hits.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "「" + qIn.value + "」に合う銘柄は見つかりませんでした。"; resEl.appendChild(e); return; }
+    hits.forEach(s => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "res";
+      b.innerHTML = '<div><div class="nm"></div><div class="sub"></div></div><div class="pr"></div>';
+      b.querySelector(".nm").textContent = s.name; b.querySelector(".sub").textContent = s.code;
+      b.querySelector(".pr").textContent = px(s.p);
+      b.addEventListener("click", () => { qIn.value = ""; renderResults(); select(s.code); qIn.blur(); });
+      resEl.appendChild(b);
+    });
+  }
+  qIn.addEventListener("input", renderResults);
+  qIn.addEventListener("keydown", e => { if (e.key === "Enter") { const f = resEl.querySelector(".res"); if (f) f.click(); } if (e.key === "Escape") { qIn.value = ""; renderResults(); } });
+
+  // ---- trade panel ----
+  function select(code) { if (!by[code]) return; sel = code; $("stockSel").value = code; msg(""); renderTrade(); renderRank(); }
+  $("stockSel").addEventListener("change", () => select($("stockSel").value));
+  function q() { const n = parseInt(String($("qty").value).replace(/[^0-9]/g, ""), 10); return isFinite(n) ? n : 0; }
+  function msg(t, c) { const m = $("msg"); m.textContent = t; m.className = "msg " + (c || ""); }
+  function setMode(m) {
+    mode = m;
+    $("modeBuy").setAttribute("aria-pressed", m === "buy"); $("modeSell").setAttribute("aria-pressed", m === "sell");
+    $("go").textContent = m === "buy" ? "買う" : "売る"; $("go").className = "primary" + (m === "sell" ? " sell" : "");
+    msg(""); renderTrade();
+  }
+  $("modeBuy").addEventListener("click", () => setMode("buy"));
+  $("modeSell").addEventListener("click", () => setMode("sell"));
+  function setChart(m) {
+    chartMode = m;
+    $("cDay").setAttribute("aria-pressed", m === "day"); $("cLong").setAttribute("aria-pressed", m === "long");
+    renderTrade();
+  }
+  $("cDay").addEventListener("click", () => setChart("day"));
+  $("cLong").addEventListener("click", () => setChart("long"));
+  function maxQty() { const s = by[sel]; if (!s) return 0; return mode === "buy" ? Math.floor(st.cash / s.p) : (st.pos[sel] ? st.pos[sel].q : 0); }
+  $("minus").addEventListener("click", () => { $("qty").value = Math.max(1, q() - 1); renderTrade(); });
+  $("plus").addEventListener("click", () => { $("qty").value = q() + 1; renderTrade(); });
+  $("presets").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; $("qty").value = b.dataset.q === "max" ? maxQty() : b.dataset.q; renderTrade(); });
+  $("qty").addEventListener("input", renderTrade);
+
+  function renderTrade() {
+    const s = by[sel]; if (!s) return;
+    const n = q(), pos = st.pos[sel];
+    $("selName").textContent = s.code + "・" + s.name;
+    $("selPrice").textContent = px(s.p);
+    const c = $("selChg"); c.textContent = "前日比 " + pct(s.p, s.prev); c.className = s.p >= s.prev ? "up" : "down";
+    $("selScore").textContent = s.sc;
+    const useDay = chartMode === "day" && s.day.length > 1;
+    drawLine($("big"), useDay ? s.day : s.daily, { grid: true, w: 2.2, dot: 3.5, pad: 8, base: useDay ? s.prev : 0 });
+    $("chartNote").textContent = useDay ? "点線は前日の終値" : (chartMode === "day" ? "今日のデータがまだないので日足を表示中" : "直近" + s.daily.length + "営業日の終値");
+    $("sum").textContent = n ? yen(n * s.p) : "—";
+    $("have").textContent = pos ? pos.q.toLocaleString("ja-JP") + "株" : "0株";
+    $("avg").textContent = pos ? px(pos.cost / pos.q) : "—";
+    let problem = "";
+    if (n > 0 && mode === "buy" && n * s.p > st.cash) problem = "現金が足りません（最大 " + maxQty().toLocaleString("ja-JP") + "株まで買えます）。";
+    if (n > 0 && mode === "sell" && n > (pos ? pos.q : 0)) problem = "持っている株数より多くは売れません。";
+    $("go").disabled = n <= 0 || !!problem;
+    if (problem) msg(problem, "err"); else if ($("msg").classList.contains("err")) msg("");
+  }
+
+  $("go").addEventListener("click", () => {
+    const s = by[sel], n = q(); if (!s || n <= 0) return;
+    const amt = n * s.p;
+    if (mode === "buy") {
+      if (amt > st.cash) return;
+      st.cash -= amt;
+      const p = st.pos[sel] || { q: 0, cost: 0 }; p.q += n; p.cost += amt; st.pos[sel] = p;
+      msg(s.name + "を" + n.toLocaleString("ja-JP") + "株買いました。", "ok");
+    } else {
+      const p = st.pos[sel]; if (!p || n > p.q) return;
+      const basis = p.cost / p.q * n, gain = amt - basis;
+      st.cash += amt; p.q -= n; p.cost -= basis; if (p.q === 0) delete st.pos[sel];
+      msg(s.name + "を" + n.toLocaleString("ja-JP") + "株売りました（損益 " + (gain >= 0 ? "+" : "−") + yen(Math.abs(gain)) + "）。", "ok");
+    }
+    st.log.unshift({ m: mode, code: sel, name: s.name, n, p: s.p, at: Date.now() }); st.log = st.log.slice(0, 50);
+    save(); renderAll();
+  });
+
+  // value a holding at the latest price, or at cost if the stock is missing from today's data
+  const valueOf = c => by[c] ? st.pos[c].q * by[c].p : st.pos[c].cost;
+
+  function renderSummary() {
+    let sv = 0; for (const c in st.pos) sv += valueOf(c);
+    const t = st.cash + sv, d = t - START;
+    $("total").textContent = yen(t); $("cash").textContent = yen(st.cash); $("stockval").textContent = yen(sv);
+    const chip = $("pl"); chip.className = "chip " + (Math.abs(d) < 0.5 ? "flat" : d > 0 ? "up" : "down");
+    chip.textContent = (d >= 0 ? "+" : "−") + yen(Math.abs(d)) + "（" + pct(t, START) + "）";
+  }
+  function renderPf() {
+    const el = $("pf"); el.innerHTML = "";
+    const codes = Object.keys(st.pos);
+    if (!codes.length) { el.innerHTML = '<div class="empty">まだ株を持っていません。ランキングから選んで買ってみてください。</div>'; return; }
+    codes.forEach(c => {
+      const p = st.pos[c], s = by[c], val = valueOf(c), g = val - p.cost;
+      const b = document.createElement("button"); b.type = "button"; b.className = "prow";
+      b.innerHTML = '<div><div class="nm"></div><div class="sub"></div></div><div class="r"><b></b><div class="sub"></div></div>';
+      b.querySelector(".nm").textContent = s ? s.name : c;
+      b.querySelector(".sub").textContent = p.q.toLocaleString("ja-JP") + "株・取得 " + px(p.cost / p.q);
+      b.querySelector("b").textContent = yen(val);
+      const gs = b.querySelector(".r .sub"); gs.textContent = (g >= 0 ? "+" : "−") + yen(Math.abs(g)) + "（" + pct(val, p.cost) + "）"; gs.className = "sub " + (g >= 0 ? "up" : "down");
+      b.addEventListener("click", () => { select(c); setMode("sell"); $("trade").scrollIntoView({ behavior: "smooth", block: "start" }); });
+      el.appendChild(b);
+    });
+  }
+  function renderHist() {
+    const el = $("hist"); el.innerHTML = "";
+    if (!st.log.length) { el.innerHTML = '<div class="empty">まだ取引はありません。</div>'; return; }
+    st.log.slice(0, 20).forEach(x => {
+      const d = document.createElement("div"); d.className = "hrow"; const t = new Date(x.at);
+      d.innerHTML = '<span><span class="tag ' + (x.m === "buy" ? "b" : "s") + '">' + (x.m === "buy" ? "買" : "売") + '</span><span class="w"></span></span><span class="t"></span>';
+      d.querySelector(".w").textContent = (x.name || (by[x.code] && by[x.code].name) || x.code) + " " + x.n.toLocaleString("ja-JP") + "株 @" + px(x.p);
+      d.querySelector(".t").textContent = (t.getMonth() + 1) + "/" + t.getDate() + " " + t.getHours() + ":" + String(t.getMinutes()).padStart(2, "0");
+      el.appendChild(d);
+    });
+  }
+  function renderAll() { renderUpdated(); renderSummary(); renderRank(); renderTrade(); renderPf(); renderHist(); }
+
+  let armed = false;
+  $("reset").addEventListener("click", e => {
+    if (!armed) { armed = true; e.target.textContent = "もう一度押すとリセット"; setTimeout(() => { armed = false; e.target.textContent = "最初からやり直す"; }, 3000); return; }
+    armed = false; e.target.textContent = "最初からやり直す"; st = fresh(); save(); msg(""); renderAll();
+  });
+
+  renderSummary(); renderPf(); renderHist();
+  load();
+  setInterval(load, 60000);
+  window.addEventListener("resize", renderTrade);
+  const mq = window.matchMedia("(prefers-color-scheme: dark)"); mq.addEventListener && mq.addEventListener("change", () => { if (loaded) renderAll(); });
+})();
+</script>
+</body>
+</html>

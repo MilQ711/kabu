@@ -1,0 +1,51 @@
+name: 株価を更新して公開
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # 東証の取引時間中（日本時間 9:00〜15:30 ＝ UTC 0:00〜6:30）に15分ごと、平日のみ
+    - cron: "*/15 0-6 * * 1-5"
+    # 大引け後の最終値
+    - cron: "45 6 * * 1-5"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: yfinance を入れる
+        run: pip install yfinance
+      - name: 株価を取得
+        run: python scripts/fetch_prices.py
+      - name: 公開するファイルをまとめる
+        run: |
+          mkdir -p _site/data
+          cp index.html _site/
+          cp data/prices.json _site/data/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
